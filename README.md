@@ -1,7 +1,7 @@
 # WolfWebsite
 Website interface for WolfGroupAssistant
 ## Languages
-English [中文](https://github.com/CyanWolf275/WolfWebsite/blob/main/README_CN.md)
+English [中文](https://github.com/CyanWolf275/WolfWebsite/blob/master/README_CN.md)
 ## Author
 Cyanwolf
 ## Modules
