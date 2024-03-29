@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="https://www.thymeleaf.org"
+      xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+  <meta charset="UTF-8">
+  <title>世界时间</title>
+  <script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.3.1/jquery.min.js"></script>
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <script src="js/bootstrap.min.js"></script>
+</head>
+<body onload="getTime()">
+<nav class="navbar navbar-expand-lg bg-body-tertiary" style="background-color: blue">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#" style="font-family: 等线; color: white; font-weight: bold">世界时间</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="https://cyanwolf.furmijk.cn/dashboard" style="font-family: 等线; color: white; font-weight: bold">主页</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://cyanwolf.furmijk.cn/member" style="font-family: 等线; color: white; font-weight: bold">群组信息</a>
+        </li>
+      </ul>
+      <img th:src="@{'/data/avatars/' + ${userid} + '.jpg'}" width="45" height="45" style="margin-right: 5px; border-radius: 100%; overflow: hidden">
+      <span class="navbar-text" th:inline="text" style="font-family: 等线; color: white; font-weight: bold; margin-right: 2%">欢迎 <span th:remove="tag" th:text="${name}">用户</span>!</span>
+      <form th:action="@{/logout}" method="post" style="font-family: 等线; color: white; font-weight: bold">
+        <input class="btn btn-sm btn-outline-light" type="submit" value="登出"/>
+      </form>
+    </div>
+  </div>
+</nav>
+<div style="margin-top: 15px; margin-left: 3%; font-size: 54pt; font-weight: bold">
+  <span style="font-family: 等线">上海：</span>
+  <span id="time1" style="font-family: 'Comic Sans MS'; color: blue"></span>
+</div>
+<div style="margin-top: 5px; margin-left: 3%; font-size: 54pt; font-weight: bold">
+  <span style="font-family: 等线">东京：</span>
+  <span id="time2" style="font-family: 'Comic Sans MS'; color: blue"></span>
+</div>
+<div style="margin-top: 5px; margin-left: 3%; font-size: 54pt; font-weight: bold">
+  <span style="font-family: 等线">洛杉矶：</span>
+  <span id="time3" style="font-family: 'Comic Sans MS'; color: blue"></span>
+</div>
+<script>
+  function getTime(){
+    var now = new Date();
+    document.getElementById("time1").innerHTML = now.toLocaleString();
+    document.getElementById("time2").innerHTML = now.toLocaleString("zh-cn", {timeZone: "Asia/Tokyo"});
+    document.getElementById("time3").innerHTML = now.toLocaleString("zh-cn", {timeZone: "America/Los_Angeles"});
+  }
+  setInterval("getTime();", 1000);
+</script>
+</body>
+</html>

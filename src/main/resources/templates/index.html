@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="https://www.thymeleaf.org"
+      xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+  <meta charset="UTF-8">
+  <title>数据库欢迎界面</title>
+  <script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.3.1/jquery.min.js"></script>
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <script src="js/bootstrap.min.js"></script>
+</head>
+<body onload="getTime()">
+<nav class="navbar navbar-expand-lg bg-body-tertiary" style="background-color: blue">
+  <div class="container-fluid">
+    <span class="navbar-brand" href="#" style="font-family: 等线; color: white; font-weight: bold">欢迎</span>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <span style="font-family: 等线; color: white; font-weight: bold">本地时间：</span>
+          <span id="time1" style="font-family: 'Comic Sans MS'; color: white;"></span>
+        </li>
+        <li class="nav-item" style="margin-left: 20px">
+          <span style="font-family: 等线; color: white; font-weight: bold">上海：</span>
+          <span id="time2" style="font-family: 'Comic Sans MS'; color: white;"></span>
+        </li>
+        <li class="nav-item" style="margin-left: 20px">
+          <span style="font-family: 等线; color: white; font-weight: bold">洛杉矶：</span>
+          <span id="time3" style="font-family: 'Comic Sans MS'; color: white;"></span>
+        </li>
+      </ul>
+      <span class="navbar-text" th:inline="text" style="font-family: 等线; color: white; font-weight: bold; margin-right: 2%">IP: <span th:remove="tag" th:text="${ip}">0.0.0.0</span></span>
+    </div>
+  </div>
+</nav>
+<div class="text-body">
+  <span style="font-family: 等线; font-size: 36pt; color: blue; font-weight: bold">来自：</span>
+  <span th:text="${from}" style="font-family: Consolas,sans-serif; font-size: 36pt; color: blue; font-weight: bold"></span>
+</div>
+<div class="text-body">
+  <a th:href="@{/dashboard}"><button type="button" class="btn btn-primary">登录</button></a>
+  <a th:href="@{/user}"><button type="button" class="btn btn-primary">用户设置</button></a>
+  <a th:href="@{/webchat}"><button type="button" class="btn btn-primary">聊天</button></a>
+</div>
+<script>
+  function getTime(){
+    var now = new Date();
+    document.getElementById("time1").innerHTML = now.toLocaleString();
+    document.getElementById("time2").innerHTML = now.toLocaleString("zh-cn", {timeZone: "Asia/Shanghai"});
+    document.getElementById("time3").innerHTML = now.toLocaleString("zh-cn", {timeZone: "America/Los_Angeles"});
+  }
+  setInterval("getTime();", 1000);
+</script>
+</body>
+</html>

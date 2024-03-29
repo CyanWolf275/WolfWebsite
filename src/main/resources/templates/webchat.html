@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="https://www.thymeleaf.org"
+      xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+    <meta charset="UTF-8">
+    <title>聊天室</title>
+    <script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.3.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <script src="js/bootstrap.min.js"></script>
+</head>
+<style>
+    .chat-container {
+        max-width: 100%;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 10px 10px 10px 10px;
+    }
+    .chat-display {
+        padding: 10px;
+        background-color: #f9f9f9;
+        height: 450px;
+        overflow-y: scroll;
+        font-family: 等线;
+    }
+    .chat-input {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        background-color: #f5f5f5;
+        font-family: 等线;
+    }
+    .chat-input input {
+        flex-grow: 1;
+        margin-right: 10px;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-family: 等线;
+    }
+    .chat-input button {
+        padding: 5px 10px;
+        background-color: #428bca;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-family: 等线;
+    }
+    .message img {
+        border-radius: 30px;
+    }
+</style>
+<body id="body" th:attr="key=${key}">
+<nav class="navbar navbar-expand-lg bg-body-tertiary" style="background-color: blue">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#" style="font-family: 等线; color: white; font-weight: bold">聊天室</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="https://cyanwolf.furmijk.cn/dashboard" style="font-family: 等线; color: white; font-weight: bold">主页</a>
+                </li>
+            </ul>
+            <img th:src="@{'/data/avatars/' + ${userid} + '.jpg'}" width="45" height="45" style="margin-right: 5px; border-radius: 100%; overflow: hidden">
+            <span class="navbar-text" th:inline="text" style="font-family: 等线; color: white; font-weight: bold; margin-right: 2%">欢迎 <span th:remove="tag" th:text="${name}">用户</span>!</span>
+            <form th:action="@{/logout}" method="post" style="font-family: 等线; color: white; font-weight: bold">
+                <input class="btn btn-sm btn-outline-light" type="submit" value="登出"/>
+            </form>
+        </div>
+    </div>
+</nav>
+<div class="input-group" style="font-family: 等线; margin-left: 10px; margin-top: 10px;">
+    <label class="input-group-text" for="groupid">聊天频道</label>
+    <select class="form-select" id="groupid" name="groupid" style="margin-right: 80%">
+      <option id="1" value="1">世界频道</option>
+    </select>
+</div>
+<div class="chat-input" style="margin-left: 10px; margin-top: 10px">
+    <button id="connect" onclick="connect_chat()" style="margin-right: 10px;">连接</button>
+    <button id="disconnect" onclick="disconnect_chat()" style="margin-right: 10px;">断开连接</button>
+    <span>在线人数：</span><span id="online_count">0</span>
+</div>
+<div class="chat-container">
+    <div id="message_box" class="chat-display" th:attr="userid=${userid}">
+
+    </div>
+    <div class="chat-input">
+        <input type="text" id="message-input" placeholder="在此输入消息...">
+        <button id="submit-btn" onclick="send()">发送</button>
+    </div>
+</div>
+</body>
+<script type="text/javascript">
+    const messageInput = document.getElementById('message-input');
+    const submitBtn = document.getElementById('submit-btn');
+    const chatDisplay = document.querySelector('.chat-display');
+    const onlinecount = document.getElementById("online_count");
+    const group = document.getElementById("groupid");
+    var websocket;
+    messageInput.addEventListener("keyup", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            submitBtn.click();
+        }
+    });
+    function connect_chat(){
+        websocket = new WebSocket("wss://cyanwolf.furmijk.cn/webchat/websocket/" + document.getElementById("body").getAttribute("key").toString());
+        websocket.onopen = function (){
+            var notification = document.createElement("div");
+            notification.style['text-align'] = 'center';
+            notification.style.backgroundColor = '#ffffff';
+            notification.style['font-size'] = '12pt';
+            notification.style.color = 'black';
+            notification.style.marginBottom = '10px';
+            notification.style['display'] = 'inline-flex';
+            notification.innerText = "连接成功<br>";
+            chatDisplay.appendChild(notification);
+        };
+        websocket.onmessage = function (event){
+            var msg = JSON.parse(event.data);
+            if(msg.type === 0){
+                onlinecount.innerText = msg.sessionID;
+                var notification = document.createElement("div");
+                notification.style['text-align'] = 'center';
+                notification.style.backgroundColor = '#ffffff';
+                notification.style['font-size'] = '12pt';
+                notification.style.color = 'black';
+                notification.style.marginBottom = '10px';
+                notification.style['display'] = 'inline-flex';
+                notification.innerText = msg.content;
+                notification.classList.add("message");
+                chatDisplay.appendChild(notification);
+            }else if(msg.type === 1){
+                var notification = document.createElement("div");
+                notification.style.backgroundColor = '#ffffff';
+                notification.style['font-size'] = '12pt';
+                notification.style.color = 'black';
+                notification.style.padding = '5px 10px';
+                notification.style.marginBottom = '10px';
+                notification.style['display'] = 'inline-flex';
+                notification.style['align-items'] = 'center';
+                notification.style['width'] = '100%';
+                notification.innerText = msg.content;
+                notification.classList.add("message");
+                if(msg.sender.toString() === chatDisplay.getAttribute("userid").toString()){
+                    notification.style['text-align'] = 'right';
+                    notification.style['justify-content'] = 'right'
+                    var avatar = document.createElement('img');
+                    avatar.src = '/data/avatars/' + msg.sender + '.jpg';
+                    avatar.width = 40;
+                    avatar.height = 40;
+                    avatar.style.marginLeft = "10px";
+                    notification.insertBefore(avatar, notification.firstChild);
+                }else{
+                    notification.style['text-align'] = 'left';
+                    notification.style['justify-content'] = 'left'
+                    var avatar = document.createElement('img');
+                    avatar.src = '/data/avatars/' + msg.sender + '.jpg';
+                    avatar.width = 40;
+                    avatar.height = 40;
+                    avatar.style.marginLeft = "10px";
+                    notification.appendChild(avatar);
+                }
+                chatDisplay.appendChild(notification);
+            }
+        };
+        websocket.onclose = function (){
+            var notification = document.createElement("div");
+            notification.style['text-align'] = 'center';
+            notification.style.backgroundColor = '#ffffff';
+            notification.style['font-size'] = '12pt';
+            notification.style.color = 'black';
+            notification.style.marginBottom = '10px';
+            notification.style['display'] = 'inline-flex';
+            notification.innerText = "连接断开<br>";
+            onlinecount.innerText = "-";
+            chatDisplay.appendChild(notification);
+        }
+    }
+    function disconnect_chat(){
+        websocket.close();
+    }
+    function send(){
+        var msgSend = {
+            "content": messageInput.value,
+            "sessionID": group[group.selectedIndex].value,
+            "encrypted": false
+        };
+        websocket.send(JSON.stringify(msgSend));
+        messageInput.value = "";
+    }
+</script>
+</html>

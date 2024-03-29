@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="https://www.thymeleaf.org"
+      xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+    <meta charset="UTF-8">
+    <title>大狼聊天</title>
+    <script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.3.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <script src="js/bootstrap.min.js"></script>
+</head>
+<style>
+    .chat-container {
+        max-width: 100%;
+        margin: 20px auto;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .chat-display {
+        padding: 10px;
+        background-color: #f9f9f9;
+        height: 450px;
+        overflow-y: scroll;
+        font-family: 等线;
+    }
+    .chat-input {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        background-color: #f5f5f5;
+        font-family: 等线;
+    }
+    .chat-input input {
+        flex-grow: 1;
+        margin-right: 10px;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-family: 等线;
+    }
+    .chat-input button {
+        padding: 5px 10px;
+        background-color: #428bca;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-family: 等线;
+    }
+    .message img {
+        border-radius: 30px;
+    }
+    .float-window{
+        display: none;
+        position: absolute;
+        top: 30%;
+        right: 38%;
+        width: 25%;
+        height: 15%;
+        padding: 7px;
+        border: 7px solid blue;
+        background-color: white;
+    }
+</style>
+<body onload="chathistory()">
+<nav class="navbar navbar-expand-lg bg-body-tertiary" style="background-color: blue">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#" style="font-family: 等线; color: white; font-weight: bold">大狼聊天</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="https://cyanwolf.furmijk.cn/dashboard" style="font-family: 等线; color: white; font-weight: bold">主页</a>
+                </li>
+            </ul>
+            <img th:src="@{'/data/avatars/' + ${userid} + '.jpg'}" width="45" height="45" style="margin-right: 5px; border-radius: 100%; overflow: hidden">
+            <span class="navbar-text" th:inline="text" style="font-family: 等线; color: white; font-weight: bold; margin-right: 2%">欢迎 <span th:remove="tag" th:text="${name}">用户</span>!</span>
+            <form th:action="@{/logout}" method="post" style="font-family: 等线; color: white; font-weight: bold">
+                <input class="btn btn-sm btn-outline-light" type="submit" value="登出"/>
+            </form>
+        </div>
+    </div>
+</nav>
+<div id="instruction_title" class="float-window">
+    <h1 class="text-center" style="font-family: 等线">请输入指示标题</h1>
+    <input id="instru_text" type="text" style="font-family: 等线">
+    <button id="instru_yes" onclick="instru_yes_func()">确认</button>
+    <button id="instru_no" onclick="instru_no_func()">取消</button>
+</div>
+<div class="chat-input" style="margin-left: 10px; margin-top: 10px">
+    <textarea id="instru" rows="8" style="width: 80%; font-family: 等线; font-size: 12pt; margin-right: 10px; resize: none" placeholder="在此输入指示"></textarea>
+    <span id="countdown" style="font-family: Consolas; font-size: 36pt; color: blue; margin-left: 10px; margin-right: 10px">90</span>
+    <span th:if="${!gpt4}" style="font-family: Consolas; font-size: 28pt; color: white; background-color: green">3.5</span>
+    <span th:if="${gpt4}" style="font-family: Consolas; font-size: 28pt; color: white; background-color: blueviolet">4.0</span>
+</div>
+<div class="chat-input" style="margin-left: 10px; margin-top: 10px">
+    <button id="set-instru" onclick="instru()" style="margin-right: 10px;">设置</button>
+    <button id="clear" onclick="clear_history()" style="margin-right: 10px;">清空聊天记录</button>
+    <button id="save_instruction" onclick="save_instruction()" style="margin-right: 10px;">保存当前指示</button>
+    <button id="delete_instruction" onclick="delete_instruction()" style="margin-right: 10px;">删除当前指示</button>
+    <select id="instruction_list" onchange="write_to_textarea()" style="margin-right: 10px;"></select>
+    <button style="margin-right: 10px;" onclick="window.open('/chat/download')">下载</button>
+</div>
+<div class="chat-container">
+    <div id="message_box" class="chat-display" th:attr="userid=${userid}">
+
+    </div>
+    <div class="chat-input">
+        <input type="text" id="message-input" placeholder="消息内容">
+        <button id="submit-btn" onclick="send()">发送</button>
+    </div>
+</div>
+<h1></h1>
+</body>
+<script>
+    const messageInput = document.getElementById('message-input');
+    const submitBtn = document.getElementById('submit-btn');
+    const chatDisplay = document.querySelector('.chat-display');
+    const instructionText = document.getElementById('instru');
+    const instructionWindow = document.getElementById("instruction_title");
+    const instructionTitle = document.getElementById("instru_text");
+    const instru_list = document.getElementById('instruction_list');
+    messageInput.addEventListener("keyup", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            submitBtn.click();
+        }
+    });
+    function save_instruction(){
+        if(instructionText.value.length == 0)
+            alert("指示不能为空");
+        else
+            instructionWindow.style.display = "block";
+    }
+    function delete_instruction(){
+        if(confirm("确认删除指示\"" + instru_list.options[instru_list.selectedIndex].text + "\"？")){
+            $.ajax({
+                async: false,
+                url: "https://cyanwolf.furmijk.cn/chat/deleteinstruction?title=" + instru_list.options[instru_list.selectedIndex].text,
+                type: "GET",
+                dataType: "json",
+                success: function (data) {
+                    if(data == 0)
+                        alert("成功删除指示");
+                    else if(data == -1)
+                        alert("输入格式错误");
+                    else if(data == -2)
+                        alert("该指示不存在");
+                    else
+                        alert("发生未知错误");
+                    update_list();
+                }
+            });
+        }
+    }
+    function instru_yes_func(){
+        if(instructionTitle.value.length == 0){
+            alert("指示标题不能为空");
+            return;
+        }
+        $.ajax({
+            async: true,
+            url: "https://cyanwolf.furmijk.cn/chat/setinstruction?title=" + instructionTitle.value + "&content=" + instructionText.value,
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                if(data == 0){
+                    instructionWindow.style.display = "none";
+                }else if(data == -1){
+                    alert("输入格式错误");
+                    instructionWindow.style.display = "none";
+                }else if(data == -2){
+                    alert("标题已经存在");
+                }else{
+                    alert("发生未知错误");
+                    instructionWindow.style.display = "none";
+                }
+                instructionTitle.value = "";
+                update_list();
+            }
+        });
+    }
+    function instru_no_func(){
+        instructionWindow.style.display = "none";
+        instructionTitle.value = "";
+    }
+    function update_list(){
+        $.ajax({
+            async: true,
+            url: "https://cyanwolf.furmijk.cn/chat/getinstruction",
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                instru_list.innerHTML = "";
+                for(var i=0;i<data.length;i++){
+                    var option = document.createElement("option");
+                    option.text = data[i].title;
+                    option.value = data[i].content;
+                    instru_list.add(option);
+                }
+            }
+        });
+    }
+    function write_to_textarea(){
+        instructionText.value = instru_list.options[instru_list.selectedIndex].value;
+    }
+    function instru(){
+        var instruction = document.getElementById("instru").value;
+        $.ajax({
+            async: true,
+            url: "https://cyanwolf.furmijk.cn/chat/api?method=instru&msg=" + instruction,
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                while(chatDisplay.hasChildNodes())
+                    chatDisplay.removeChild(chatDisplay.childNodes[0]);
+                var history = data;
+                for(var i = 0;i < history.length;i++){
+                    if(history[i].role == "system"){
+                        document.getElementById("instru").textContent = history[i].message;
+                    }else if(history[i].role == "user"){
+                        var msg = document.createElement("div");
+                        msg.classList.add("message");
+                        msg.innerText = history[i].message;
+                        msg.style.backgroundColor = '#ffffff';
+                        msg.style.color = 'black';
+                        msg.style.padding = '5px 10px';
+                        msg.style.marginBottom = '10px';
+                        msg.style['text-align'] = 'right';
+                        msg.style['display'] = 'inline-flex';
+                        msg.style['justify-content'] = 'right'
+                        msg.style['align-items'] = 'center'
+                        msg.style['width'] = '100%'
+                        var avatar = document.createElement('img');
+                        avatar.src = '/data/avatars/' + chatDisplay.getAttribute("userid") + '.jpg';
+                        avatar.width = 40;
+                        avatar.height = 40;
+                        avatar.style.marginLeft = "10px";
+                        msg.appendChild(avatar);
+                        chatDisplay.appendChild(msg);
+                    }else if(history[i].role == "assistant"){
+                        var msg = document.createElement("div");
+                        msg.classList.add("message");
+                        msg.innerText = history[i].message;
+                        msg.style.backgroundColor = '#ffffff';
+                        msg.style.color = 'black';
+                        msg.style.padding = '5px 10px';
+                        msg.style.marginBottom = '10px';
+                        msg.style['text-align'] = 'left';
+                        msg.style['display'] = 'inline-flex';
+                        msg.style['justify-content'] = 'left'
+                        msg.style['align-items'] = 'center'
+                        msg.style['width'] = '100%'
+                        var avatar = document.createElement('img');
+                        avatar.src = '/data/avatars/' + '2784617026' + '.jpg';
+                        avatar.width = 40;
+                        avatar.height = 40;
+                        avatar.style.marginRight = "10px";
+                        msg.insertBefore(avatar, msg.firstChild);
+                        chatDisplay.appendChild(msg);
+                    }
+                }
+            }
+        });
+    }
+    function clear_history(){
+        $.ajax({
+            async: true,
+            url: "https://cyanwolf.furmijk.cn/chat/api?method=clear&msg=0",
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                while(chatDisplay.hasChildNodes())
+                    chatDisplay.removeChild(chatDisplay.childNodes[0]);
+                var history = data;
+                for(var i = 0;i < history.length;i++){
+                    if(history[i].role == "system"){
+                        document.getElementById("instru").textContent = history[i].message;
+                    }else if(history[i].role == "user"){
+                        var msg = document.createElement("div");
+                        msg.classList.add("message");
+                        msg.innerText = history[i].message;
+                        msg.style.backgroundColor = '#ffffff';
+                        msg.style.color = 'black';
+                        msg.style.padding = '5px 10px';
+                        msg.style.marginBottom = '10px';
+                        msg.style['text-align'] = 'right';
+                        msg.style['display'] = 'inline-flex';
+                        msg.style['justify-content'] = 'right'
+                        msg.style['align-items'] = 'center'
+                        msg.style['width'] = '100%'
+                        var avatar = document.createElement('img');
+                        avatar.src = '/data/avatars/' + chatDisplay.getAttribute("userid") + '.jpg';
+                        avatar.width = 40;
+                        avatar.height = 40;
+                        avatar.style.marginLeft = "10px";
+                        msg.appendChild(avatar);
+                        chatDisplay.appendChild(msg);
+                    }else if(history[i].role == "assistant"){
+                        var msg = document.createElement("div");
+                        msg.classList.add("message");
+                        msg.innerText = history[i].message;
+                        msg.style.backgroundColor = '#ffffff';
+                        msg.style.color = 'black';
+                        msg.style.padding = '5px 10px';
+                        msg.style.marginBottom = '10px';
+                        msg.style['text-align'] = 'left';
+                        msg.style['display'] = 'inline-flex';
+                        msg.style['justify-content'] = 'left'
+                        msg.style['align-items'] = 'center'
+                        msg.style['width'] = '100%'
+                        var avatar = document.createElement('img');
+                        avatar.src = '/data/avatars/' + '2784617026' + '.jpg';
+                        avatar.width = 40;
+                        avatar.height = 40;
+                        avatar.style.marginRight = "10px";
+                        msg.insertBefore(avatar, msg.firstChild);
+                        chatDisplay.appendChild(msg);
+                    }
+                }
+            }
+        });
+    }
+    var second = 90;
+    var timer;
+    var t = document.getElementById("countdown")
+    var timeron = true;
+    function countDown(){
+        second--;
+        if(!timeron){
+            second = 90
+            t.innerText = second;
+            clearTimeout(timer)
+            return
+        }else if(second == -1){
+            t.innerText = "超时";
+            t.style.color = "red";
+        }
+        t.innerText = second;
+        timer = setTimeout('countDown()', 1000);
+    }
+    function send(){
+        if(messageInput.value.length == 0){
+            alert("消息内容不能为空");
+            return;
+        }
+        var usertext = messageInput.value
+        var msg = document.createElement("div");
+        msg.classList.add("message");
+        msg.innerText = usertext;
+        msg.style.backgroundColor = '#ffffff';
+        msg.style.color = 'black';
+        msg.style.padding = '5px 10px';
+        msg.style.marginBottom = '10px';
+        msg.style['text-align'] = 'right';
+        msg.style['display'] = 'inline-flex';
+        msg.style['justify-content'] = 'right'
+        msg.style['align-items'] = 'center'
+        msg.style['width'] = '100%'
+        var avatar = document.createElement('img');
+        avatar.src = '/data/avatars/' + chatDisplay.getAttribute("userid") + '.jpg';
+        avatar.width = 40;
+        avatar.height = 40;
+        avatar.style.marginLeft = "10px";
+        msg.appendChild(avatar);
+        chatDisplay.appendChild(msg);
+        messageInput.value = "";
+        var msg2 = document.createElement("div");
+        msg2.classList.add("message");
+        msg2.innerText = "大狼正在回答...";
+        msg2.style.backgroundColor = '#ffffff';
+        msg2.style.color = 'black';
+        msg2.style.padding = '5px 10px';
+        msg2.style.marginBottom = '10px';
+        msg2.style['text-align'] = 'left';
+        msg2.style['display'] = 'inline-flex';
+        msg2.style['justify-content'] = 'left'
+        msg2.style['align-items'] = 'center'
+        msg2.style['width'] = '100%'
+        var avatar2 = document.createElement('img');
+        avatar2.src = '/data/avatars/' + '2784617026' + '.jpg';
+        avatar2.width = 40;
+        avatar2.height = 40;
+        avatar2.style.marginRight = "10px";
+        msg2.insertBefore(avatar2, msg2.firstChild);
+        chatDisplay.appendChild(msg2);
+        document.getElementById("message_box").scrollTop = document.getElementById("message_box").scrollHeight;
+        timeron = true;
+        countDown();
+        $.ajax({
+            async: true,
+            url: "https://cyanwolf.furmijk.cn/chat/api?method=0&msg=" + usertext,
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                if(data.status == 0){
+                    msg2.innerText = data.response;
+                    var avatar2 = document.createElement('img');
+                    avatar2.src = '/data/avatars/' + '2784617026' + '.jpg';
+                    avatar2.width = 40;
+                    avatar2.height = 40;
+                    avatar2.style.marginRight = "10px";
+                    msg2.insertBefore(avatar2, msg2.firstChild);
+                    document.getElementById("message_box").scrollTop = document.getElementById("message_box").scrollHeight;
+                    timeron = false;
+                }else if(data.status == -1){
+                    msg2.innerText = "获取回答超时";
+                    msg2.style.color = 'red';
+                    msg2.style.fontWeight = 'bold';
+                    msg.style.color = 'gray';
+                    var avatar2 = document.createElement('img');
+                    avatar2.src = '/data/avatars/' + '2784617026' + '.jpg';
+                    avatar2.width = 40;
+                    avatar2.height = 40;
+                    avatar2.style.marginRight = "10px";
+                    msg2.insertBefore(avatar2, msg2.firstChild);
+                    document.getElementById("message_box").scrollTop = document.getElementById("message_box").scrollHeight;
+                    timeron = false;
+                }else if(data.status == -2){
+                    msg2.innerText = "获取回答时发生API错误";
+                    msg2.style.color = 'red';
+                    msg2.style.fontWeight = 'bold';
+                    msg.style.color = 'gray';
+                    var avatar2 = document.createElement('img');
+                    avatar2.src = '/data/avatars/' + '2784617026' + '.jpg';
+                    avatar2.width = 40;
+                    avatar2.height = 40;
+                    avatar2.style.marginRight = "10px";
+                    msg2.insertBefore(avatar2, msg2.firstChild);
+                    document.getElementById("message_box").scrollTop = document.getElementById("message_box").scrollHeight;
+                    timeron = false;
+                }else if(data.status == -3){
+                    chatDisplay.removeChild(msg);
+                    chatDisplay.removeChild(msg2);
+                    messageInput.value = usertext;
+                    alert("大狼正在回答上一条消息");
+                }
+
+                //location.reload();
+            }
+        });
+    }
+    function chathistory(){
+        update_list();
+        $.ajax({
+            async: true,
+            url: "https://cyanwolf.furmijk.cn/chat/api?method=init&msg=0",
+            type: "GET",
+            dataType: "json",
+            success: function (data){
+                var history = data;
+                for(var i = 0;i < history.length;i++){
+                    if(history[i].role == "system"){
+                        document.getElementById("instru").textContent = history[i].message;
+                    }else if(history[i].role == "user"){
+                        var msg = document.createElement("div");
+                        msg.classList.add("message");
+                        msg.innerText = history[i].message;
+                        msg.style.backgroundColor = '#ffffff';
+                        msg.style.color = 'black';
+                        msg.style.padding = '5px 10px';
+                        msg.style.marginBottom = '10px';
+                        msg.style['text-align'] = 'right';
+                        msg.style['display'] = 'inline-flex';
+                        msg.style['justify-content'] = 'right'
+                        msg.style['align-items'] = 'center'
+                        msg.style['width'] = '100%'
+                        var avatar = document.createElement('img');
+                        avatar.src = '/data/avatars/' + chatDisplay.getAttribute("userid") + '.jpg';
+                        avatar.width = 40;
+                        avatar.height = 40;
+                        avatar.style.marginLeft = "10px";
+                        msg.appendChild(avatar);
+                        chatDisplay.appendChild(msg);
+                    }else if(history[i].role == "assistant"){
+                        var msg = document.createElement("div");
+                        msg.classList.add("message");
+                        msg.innerText = history[i].message;
+                        msg.style.backgroundColor = '#ffffff';
+                        msg.style.color = 'black';
+                        msg.style.padding = '5px 10px';
+                        msg.style.marginBottom = '10px';
+                        msg.style['text-align'] = 'left';
+                        msg.style['display'] = 'inline-flex';
+                        msg.style['justify-content'] = 'left'
+                        msg.style['align-items'] = 'center'
+                        msg.style['width'] = '100%'
+                        var avatar = document.createElement('img');
+                        avatar.src = '/data/avatars/' + '2784617026' + '.jpg';
+                        avatar.width = 40;
+                        avatar.height = 40;
+                        avatar.style.marginRight = "10px";
+                        msg.insertBefore(avatar, msg.firstChild);
+                        chatDisplay.appendChild(msg);
+                    }
+                }
+            }
+        });
+    }
+</script>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="https://www.thymeleaf.org"
+      xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+  <meta charset="UTF-8">
+  <title>设置</title>
+  <script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.3.1/jquery.min.js"></script>
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <script src="js/bootstrap.min.js"></script>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg bg-body-tertiary" style="background-color: blue">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#" style="font-family: 等线; color: white; font-weight: bold">设置</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="https://cyanwolf.furmijk.cn/dashboard" style="font-family: 等线; color: white; font-weight: bold">主页</a>
+        </li>
+      </ul>
+      <img th:src="@{'/data/avatars/' + ${userid} + '.jpg'}" width="45" height="45" style="margin-right: 5px; border-radius: 100%; overflow: hidden">
+      <span class="navbar-text" th:inline="text" style="font-family: 等线; color: white; font-weight: bold; margin-right: 2%">欢迎 <span th:remove="tag" th:text="${name}">用户</span>!</span>
+      <form th:action="@{/logout}" method="post" style="font-family: 等线; color: white; font-weight: bold">
+        <input class="btn btn-sm btn-outline-light" type="submit" value="登出"/>
+      </form>
+    </div>
+  </div>
+</nav>
+<div style="margin-left: 10px; margin-top: 10px">
+  <span th:if="${secretbool}" style="font-family: 等线; font-size: 24pt; color: green">已添加二步动态验证码</span>
+  <span th:if="${!secretbool}" style="font-family: 等线; font-size: 24pt; color: red">未添加二步动态验证码</span>
+  <a th:href="@{/user?secret=1}"><button type="button" class="btn btn-primary">生成</button></a>
+  <br>
+  <input id="code" type="text" style="font-family: 等线; font-size: 12pt; font-weight: bold">
+  <button type="button" class="btn btn-primary" onclick="check()">验证</button>
+  <br>
+  <span id="result" style="font-family: 等线; font-size: 24pt;"></span>
+  <br>
+  <span th:if="${imggen}"><img th:src="${secretimg}"></span>
+</div>
+</body>
+<script>
+  const codetext = document.getElementById("code");
+  const resulttext = document.getElementById("result");
+  function check(){
+    $.ajax({
+      async: true,
+      url: "https://cyanwolf.furmijk.cn/user/verify?code=" + codetext.value,
+      type: "GET",
+      dataType: "json",
+      success: function (data) {
+        if(data.result){
+          resulttext.innerHTML = "校验成功";
+          resulttext.style.color = "green";
+        }else{
+          resulttext.innerHTML = "校验失败";
+          resulttext.style.color = "red";
+        }
+      }
+    });
+  }
+</script>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="https://www.thymeleaf.org"
+      xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+  <meta charset="UTF-8">
+  <title>控制台</title>
+  <script src="https://s3.pstatp.com/cdn/expire-1-M/jquery/3.3.1/jquery.min.js"></script>
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <script src="js/bootstrap.min.js"></script>
+  <script src="js/echarts.min.js"></script>
+</head>
+<style>
+  img[src=""], img:not([src]){
+    opacity: 0;
+  }
+  .float-window{
+    display: none;
+    position: absolute;
+    top: 10%;
+    right: 3%;
+    width: 40%;
+    height: 50%;
+    padding: 10px;
+    border: 10px solid orange;
+    background-color: white;
+  }
+</style>
+<body th:onload="setDefault([[${msgcountlst}]], [[${totalmsg}]])">
+<div id="msgstat" class="float-window">
+</div>
+<nav class="navbar navbar-expand-lg bg-body-tertiary" style="background-color: blue">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#" style="font-family: 等线; color: white; font-weight: bold">控制台</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="#" style="font-family: 等线; color: white; font-weight: bold">主页</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="javascript:void(0);" onclick="gotomember()" style="font-family: 等线; color: white; font-weight: bold">群组信息</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="clock" style="font-family: 等线; color: white; font-weight: bold">世界时间</a>
+        </li>
+      </ul>
+      <img th:src="@{'/data/avatars/' + ${userid} + '.jpg'}" width="45" height="45" style="margin-right: 5px; border-radius: 100%; overflow: hidden">
+      <span class="navbar-text" th:inline="text" style="font-family: 等线; color: white; font-weight: bold; margin-right: 2%">欢迎 <span th:remove="tag" th:text="${name}">用户</span>!</span>
+      <form th:action="@{/logout}" method="post" style="font-family: 等线; color: white; font-weight: bold">
+        <input class="btn btn-sm btn-outline-light" type="submit" value="登出"/>
+      </form>
+    </div>
+  </div>
+</nav>
+<br>
+<form action="/dashboard" type="post">
+  <div class="input-group" style="font-family: 等线; margin-left: 10px">
+    <label class="input-group-text" for="groupid">群号</label>
+    <select class="form-select" id="groupid" name="groupid">
+      <option th:each="Group:${groupchoice}" th:text="${Group.id} + '（' + ${Group.name} + '）'" th:value="${Group.id}"></option>
+    </select><br>
+    <label class="input-group-text" for="start_time">开始日期</label>
+    <input id="start_time" type="date" name="starttime">
+    <label class="input-group-text" for="end_time">结束日期</label>
+    <input id="end_time" type="date" name="endtime" style="margin-right: 45%">
+  </div>
+  <div class="input-group" style="font-family: 等线; margin-top: 10px; margin-left: 10px">
+    <label class="input-group-text">消息类型</label>
+    <div class="form-check form-check-inline" style="font-family: 等线;margin-top: 7px; margin-left: 10px">
+      <input class="form-check-input" type="checkbox" id="type0" value="0" name="type">
+      <label class="form-check-label" for="type0">文本</label>
+    </div>
+    <div class="form-check form-check-inline" style="font-family: 等线;margin-top: 7px; margin-left: 10px">
+      <input class="form-check-input" type="checkbox" id="type1" value="1" name="type">
+      <label class="form-check-label" for="type1">图片</label>
+    </div>
+    <div class="form-check form-check-inline" style="font-family: 等线;margin-top: 7px; margin-left: 10px">
+      <input class="form-check-input" type="checkbox" id="type5" value="5" name="type">
+      <label class="form-check-label" for="type5">闪照</label>
+    </div>
+    <div class="form-check form-check-inline" style="font-family: 等线;margin-top: 7px; margin-left: 10px">
+      <input class="form-check-input" type="checkbox" id="type6" value="6" name="type">
+      <label class="form-check-label" for="type6">戳一戳</label>
+    </div>
+    <div class="form-check form-check-inline" style="font-family: 等线;margin-top: 7px; margin-left: 10px">
+      <input class="form-check-input" type="checkbox" id="type8" value="8" name="type">
+      <label class="form-check-label" for="type8">小程序</label>
+    </div>
+    <div class="form-check form-check-inline" style="font-family: 等线;margin-top: 7px; margin-left: 10px">
+      <input class="form-check-input" type="checkbox" id="type10" value="10" name="type">
+      <label class="form-check-label" for="type10">商城表情</label>
+    </div>
+    <div class="form-check form-check-inline" style="font-family: 等线;margin-top: 7px; margin-left: 10px">
+      <input class="form-check-input" type="checkbox" id="type11" value="11" name="type">
+      <label class="form-check-label" for="type11">转发消息</label>
+    </div>
+    <div class="form-check form-check-inline" style="font-family: 等线;margin-top: 7px; margin-left: 10px">
+      <input class="form-check-input" type="checkbox" id="type13" value="13" name="type">
+      <label class="form-check-label" for="type13">音乐分享</label>
+    </div>
+    <div class="form-check form-check-inline" style="font-family: 等线;margin-top: 7px; margin-left: 10px">
+      <input class="form-check-input" type="checkbox" id="type14" value="14" name="type">
+      <label class="form-check-label" for="type14">骰子</label>
+    </div>
+    <div class="form-check form-check-inline" style="font-family: 等线;margin-top: 7px; margin-left: 10px">
+      <input class="form-check-input" type="checkbox" id="type16" value="16" name="type">
+      <label class="form-check-label" for="type16">语音</label>
+    </div>
+  </div>
+  <div class="input-group" style="font-family: 等线; margin-top: 10px; margin-left: 10px">
+    <label class="input-group-text" for="filter_content">筛选内容</label>
+    <div class="input-group-text">
+      <input id="filter_content" class="form-check-input mt-0" type="checkbox" onchange="filter_checkbox(this)">
+    </div>
+    <input id="filter_text" type="text" name="filtertxt" class="form-control">
+    <input class="btn btn-primary" id="search" type="submit" value="查询" onsubmit="return submitcheck()">
+    <input class="btn btn-info" id="showstats" type="button" value="显示统计信息" onclick="showchart()" style="margin-right: 55%"><br>
+  </div>
+</form>
+<div class="table" style="font-size: 12pt; font-family: 等线">
+  <img id="s" src="" style="height: 300px">
+  <table class="table table-bordered text-nowrap">
+    <thead>
+    <tr>
+      <th>序号</th>
+      <th>时间</th>
+      <th>类型</th>
+      <th>QQ号</th>
+      <th>昵称</th>
+      <th>内容</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="Message:${index}">
+      <td th:text="${Message.id}"></td>
+      <td th:text="${Message.time}"></td>
+      <td th:text="${Message.type}"></td>
+      <td th:text="${Message.sender}"></td>
+      <td th:text="${Message.name}"></td>
+      <td th:if="${Message.type == 1}">
+        <a th:href="@{'/data/' + ${groupid} + '/' + ${Message.content}}" th:text="${Message.content}" th:onmouseover="on([[${groupid}]], [[${Message.content}]])" th:onmouseout="off()" target="_blank"></a>
+      </td>
+      <td th:if="${Message.type != 1}" th:text="${Message.content}"></td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+<script type="text/javascript">
+  var chart1 = null;
+  var option1 = null;
+  function submitcheck(){
+    if($("#start_time").val().length == 0 || $("#end_time").val().length == 0 || (document.getElementById("filter_content").checked && document.getElementById("filter_text").value == "")){
+      alert("请填写查询参数");
+      return false;
+    }else{
+      document.getElementById("filter_text").value = encodeURIComponent(document.getElementById("filter_text").value);
+      return true;
+    }
+  }
+  function searchbtn(){
+    if($("#start_time").val().length == 0 || $("#end_time").val().length == 0){
+      alert("请输入查询日期范围！");
+    }else{
+      window.location.replace("https://" + window.location.host + "/dashboard?group=" + $("#groupid option:selected").val() + "&start=" + $("#start_time").val() + "&end=" + $("#end_time").val());
+      //console.log("http://" + window.location.host + "/" + $("#groupid option:selected").val() + "/" + $("#start_time").val() + "/" + $("#end_time").val());
+    }
+  }
+  function getQueryString(para){
+    var search=location.search;
+    var arrPara=new Array();
+    var arrVal=new Array();
+
+    if(search!=""){
+      var index=0;
+      search=search.substring(1);
+      arrPara=search.split("&");
+
+      for(i in arrPara){
+        var paraPre=para+"=";
+        if(arrPara[i].indexOf(paraPre)==0&& paraPre.length<arrPara[i].length){
+          arrVal[index]=decodeURI(arrPara[i].substr(paraPre.length));
+          index++;
+        }
+      }
+    }
+
+    if(arrVal.length==1){
+      return arrVal[0];
+    }else if(arrVal.length==0){
+      return null;
+    }else{
+      return arrVal;
+    }
+  }
+  function setDefault(msgcountlst, totalmsg) {
+    let urllst = window.location.search.substring(1).split("&");
+    document.getElementById("filter_text").disabled = !document.getElementById("filter_content").checked;
+    if(urllst.length > 0){
+      $("#groupid").val(getQueryString("groupid"));
+      $("#start_time").val(getQueryString("starttime"));
+      $("#end_time").val(getQueryString("endtime"));
+    }
+    var txt = getQueryString("filtertxt")
+    document.getElementById("filter_text").disabled = txt == null ? true : false;
+    document.getElementById("filter_text").value = txt == null ? "" : txt;
+    document.getElementById("filter_content").checked = txt == null ? false : true;
+    var types = getQueryString("type");
+    if(types == null){
+      document.getElementById("type0").checked = true;
+      document.getElementById("type1").checked = true;
+      document.getElementById("type5").checked = true;
+      document.getElementById("type6").checked = true;
+      document.getElementById("type8").checked = true;
+      document.getElementById("type10").checked = true;
+      document.getElementById("type11").checked = true;
+      document.getElementById("type13").checked = true;
+      document.getElementById("type14").checked = true;
+      document.getElementById("type16").checked = true;
+    }else if(typeof types == "object"){
+      for(var j in types){
+        document.getElementById("type" + types[j]).checked = true;
+      }
+    }else
+      document.getElementById("type" + types).checked = true;
+    types = null;
+    txt = null;
+    var lst = [];
+    var sum = 0;
+    for(let i=0;i<msgcountlst.length;i++){
+      lst.push({name: msgcountlst[i].name, value: msgcountlst[i].msgcount});
+      sum += parseInt(msgcountlst[i].msgcount);
+    }
+    if(sum < parseInt(totalmsg)){
+      lst.push({name: "其他成员", value: (parseInt(totalmsg) - sum)});
+    }
+    option1 = {
+      title: {
+        text: "各成员消息占比",
+        textStyle: {
+          fontFamily: "Microsoft YaHei"
+        }
+      },
+      animation: false,
+      series: [
+        {
+          type: "pie",
+          data: lst,
+          label: {
+            show: true,
+            fontFamily: "Microsoft YaHei",
+            formatter: "{b} {d}%"
+          }
+        }
+      ]
+    };
+  }
+  function showchart(){
+    if(document.getElementById("msgstat").style.display == "block"){
+      document.getElementById("showstats").value = "显示统计信息";
+      document.getElementById("msgstat").style.display = "none";
+    }else{
+      document.getElementById("showstats").value = "隐藏统计信息";
+      document.getElementById("msgstat").style.display = "block";
+      chart1 = echarts.init(document.getElementById("msgstat"));
+      chart1.setOption(option1);
+    }
+  }
+  window.addEventListener("resize", resizeadjust);
+  function resizeadjust(){
+    if(document.getElementById("msgstat").style.display == "block"){
+      chart1 = echarts.init(document.getElementById("msgstat"));
+      chart1.setOption(option1);
+    }
+  }
+  function on(groupid, content) {
+    var link = "";
+    link = "/data/" + groupid + "/" + content;
+    $("#s").attr("src", link);
+    $(document).mousemove(function (e){
+      $("#s").css("position", "absolute").css("left", e.pageX + 1 + "px").css("top", e.pageY + 1 + "px");
+    })
+  }
+  function off(){
+    $("#s").attr("src", "");
+    $(document).mousemove(function (e) {
+      $("#s").css("position", "absolute").css("left", "-400px").css("top", "-400px");
+    })
+  }
+  function filter_checkbox(obj){
+    if(document.getElementById("filter_content").checked){
+      document.getElementById("filter_text").disabled = !document.getElementById("filter_content").checked;
+    }else{
+      document.getElementById("filter_text").value = "";
+      document.getElementById("filter_text").disabled = !document.getElementById("filter_content").checked;
+    }
+  }
+  function gotomember(){
+    window.location.href = "member?group=" + $("#groupid option:selected").val();
+  }
+</script>
+</body>
+</html>
